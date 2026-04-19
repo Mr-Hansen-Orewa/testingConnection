@@ -1,6 +1,7 @@
-Formatting the ESP32 with the partition
-Then using the https://thelastoutpostworkshop.github.io/ESPConnect/ site to upload the website files to the LittleFS partition
-The testingConnection.ino file and secrets.h file should let the website control the neopixel color while also testing a range of connection issues
+Formatting the ESP32 with the partition  
+Then using the https://thelastoutpostworkshop.github.io/ESPConnect/ site to upload the website files to the LittleFS partition  
+The testingConnection.ino file and secrets.h file should let the website control the neopixel color while also testing a range of connection issues  
+  
 1. Upload works
 2. Screen works
 3. Wifi works
