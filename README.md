@@ -6,8 +6,8 @@ The testingConnection.ino file and secrets.h file should let the website control
 3. Wifi works
 4. LittleFS partition works
 5. Website works
-5.1. Html works
-5.2. Css works
-5.3. Javascript works
++5.1. Html works
++5.2. Css works
++5.3. Javascript works
 6. Webserver control from webpage to ESP (neopixel) works
 7. Webserver control from ESP to webpage (button state) works
