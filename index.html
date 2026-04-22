@@ -32,13 +32,13 @@
                 <!-- change this from post to get to see what is sent in the address bar -->
                 <form action="/" method="post"> 
                     <label for="testColor1">Red (between 0 and 255):</label>
-                    <input type="range" id="testColor1" name="red" min="0" max="255" /><br />
+                    <input type="range" oninput="updatetestColor1(this)" id="testColor1" name="red" min="0" max="255" /><br />
                     <p>Red is: <output id="redVal"></output></p>
                     <label for="testColor2">Green (between 0 and 255):</label>
-                    <input type="range" id="testColor2" name="green" min="0" max="255" /><br />
+                    <input type="range" oninput="updatetestColor2(this)" id="testColor2" name="green" min="0" max="255" /><br />
                     <p>Green is: <output id="greenVal"></output></p>
                     <label for="testColor3">Blue (between 0 and 255):</label>
-                    <input type="range" id="testColor3" name="blue" min="0" max="255" /><br />
+                    <input type="range" oninput="updatetestColor3(this)" id="testColor3" name="blue" min="0" max="255" /><br />
                     <p>Blue is: <output id="blueVal"></output></p>
                     <button type="submit">Send to NeoPixel on ESP</button>
                 </form>
