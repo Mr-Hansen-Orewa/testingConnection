@@ -16,21 +16,10 @@
         </header>
         <div class="flex-container">
             <div class="flex-item">
-                <p>You <span id="d1Button">aren't</span> pressing the D1 button</p>
+                <p>You <span id="d2Button">aren't</span> pressing the D2 button</p>
             </div>
             <div class="flex-item">
-                <form action="/" method="post">
-                    <label for="testColor0">Select a color:</label>
-                    <input type="color" id="testColor0" name="testColor" value="#ff0000" /><br />
-                    <!-- disabled as to color pickers will clash for whose value
-                    is correct to use, but wanted to show you could do it multiple ways -->
-                    <button type="submit" disabled>Send to NeoPixel on ESP</button>
-                    <button type="reset" disabled>Reset Form</button>
-                </form>
-            </div>
-            <div class="flex-item">
-                <!-- change this from post to get to see what is sent in the address bar -->
-                <form action="/" method="post"> 
+               
                     <label for="testColor1">Red (between 0 and 255):</label>
                     <input type="range" oninput="updatetestColor1(this)" id="testColor1" name="red" min="0" max="255" /><br />
                     <p>Red is: <output id="redVal"></output></p>
@@ -40,8 +29,8 @@
                     <label for="testColor3">Blue (between 0 and 255):</label>
                     <input type="range" oninput="updatetestColor3(this)" id="testColor3" name="blue" min="0" max="255" /><br />
                     <p>Blue is: <output id="blueVal"></output></p>
-                    <button type="submit">Send to NeoPixel on ESP</button>
-                </form>
+                  
+               
             </div>
         </div>
         <script src="script.js"></script>
