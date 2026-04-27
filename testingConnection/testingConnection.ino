@@ -1,7 +1,7 @@
 #include <WiFi.h>
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
-#include "LittleFS.h"
+#include <LittleFS.h>
 #include <Arduino_JSON.h>
 #include "secrets.h"  //double quotes rather than angle brackets makes the compiler look in the sketch folder rather than the library folder
 //#include <LibPrintf.h>
@@ -10,9 +10,26 @@
 #include <SPI.h>
 #include <Adafruit_NeoPixel.h>
 
+//------------- D1 button setup --------------
+const byte BTNPIN = 2;  //D2 is also GPIO2 //Oh not zero //D0 should be avoided
+
+
+//------------- Screen setup --------------
+Adafruit_ST7789 tftScreen = Adafruit_ST7789(TFT_CS, TFT_DC, TFT_RST);
+
+
+//------------- Neopixel setup --------------
+Adafruit_NeoPixel pixels(1, PIN_NEOPIXEL, NEO_GRB + NEO_KHZ800);
+
+//these values give a green light on neopixel
+int red = 0;
+int green = 255;
+int blue = 0;
+
+
 //------------- WiFi setup --------------
 //the Wifi status
-int status = WL_IDLE_STATUS;
+//int status = WL_IDLE_STATUS;
 
 //Your network name and password are hidden in the secrets.h file
 const char SSID[] = SECRET_SSID;
@@ -21,44 +38,13 @@ const char PASSWORD[] = SECRET_PASS;
 //------------- WebServer setup --------------
 // Create AsyncWebServer object on port 80
 AsyncWebServer server(80);
+// Create a WebSocket object
+AsyncWebSocket ws("/ws");
 
-// Search for parameter in HTTP POST request
-const char* PARAM_INPUT_1 = "inputR";
-const char* PARAM_INPUT_2 = "inputG";
-const char* PARAM_INPUT_3 = "inputB";
 
-//Variables to save values from HTML form
-String inputR;
-String inputG;
-String inputB;
-
-// File paths to save input values permanently
-const char* inputRPath = "/inputR.txt";
-const char* inputGPath = "/inputG.txt";
-const char* inputBPath = "/inputB.txt";
-JSONVar values;
-
-String getCurrentInputValues() {
-  values["redVal"] = inputR;
-  values["greenVal"] = inputG;
-  values["blueVal"] = inputB;
-  String jsonString = JSON.stringify(values);
-  return jsonString;
-}
-
-//------------- Screen setup --------------
-Adafruit_ST7789 tftScreen = Adafruit_ST7789(TFT_CS, TFT_DC, TFT_RST);
-
-//------------- Neopixel setup --------------
-Adafruit_NeoPixel pixels(1, PIN_NEOPIXEL, NEO_GRB + NEO_KHZ800);
-
-//these values should be overwritten with 0, 255, 255 from the txt files 
-//so good error check if red light on neopixel
-int red = 255;
-int green = 0;
-int blue = 0;
-
-//------------- LittleFS setup --------------
+/**
+LittleFS setup - wants to be first method for some reason?
+*/
 void initLittleFS() {
   if (!LittleFS.begin(true)) {
     Serial.println("LittleFS failed to setup");
@@ -67,7 +53,9 @@ void initLittleFS() {
   }
 }
 
-//------------- LittleFS reading a file --------------
+/**
+LittleFS reading a file 
+*/
 String readFile(fs::FS& fs, const char* path) {
   Serial.print("Reading file: ");
   Serial.println(path);
@@ -84,7 +72,9 @@ String readFile(fs::FS& fs, const char* path) {
   return fileContent;
 }
 
-//------------- LittleFS writing a file --------------
+/**
+LittleFS writing a file
+*/
 void writeFile(fs::FS& fs, const char* path, const char* message) {
   Serial.print("Writing file: ");
   Serial.println(path);
@@ -100,12 +90,118 @@ void writeFile(fs::FS& fs, const char* path, const char* message) {
   }
 }
 
+/**
+set up a JSON array and hold the states of all values we care about
+pins and their current states
+variables and their current values
+*/
+String getOutputStates() {
+  JSONVar myArray;
+
+  myArray["values"][0]["pinNum"] = String(2);
+  myArray["values"][0]["state"] = String(digitalRead(2));
+
+  myArray["values"][1]["pinNum"] = String(13);
+  myArray["values"][1]["state"] = String(digitalRead(13));
+
+  myArray["values"][2]["r"] = String(red);
+  myArray["values"][2]["g"] = String(green);
+  myArray["values"][2]["b"] = String(blue);
+
+  String jsonString = JSON.stringify(myArray);
+  return jsonString;
+}
+
+/**
+Sends a message to all clients connected to ip address with a JSON message
+*/
+void notifyClients(String state) {
+  ws.textAll(state);
+}
+
+/**
+Handles messages from clients in the if statements below
+*/
+void handleWebSocketMessage(void* arg, uint8_t* data, size_t len) {
+  AwsFrameInfo* info = (AwsFrameInfo*)arg;
+  if (info->final && info->index == 0 && info->len == len && info->opcode == WS_TEXT) {
+    data[len] = 0;
+    //if message is states send the state of all gpio pins
+    if (strcmp((char*)data, "getStates") == 0) {
+      notifyClients(getOutputStates());
+    } else {
+//THIS THIS STUFF HERE FIGURE ALL OF THIS OUT AHAHAHAHAHAHHAHAHAHAHHAHAHAHAHAH
+      // std::string rgb = "rgb(255,87,51)";
+      std::string rgb = (char*)data;
+      byte firstComma = rgb.find(',');
+      byte secondComma = rgb.find(',', firstComma + 1);
+      byte lastBracket = rgb.find(')');
+
+      red = stoi(rgb.substr(4, firstComma));
+      green = stoi(rgb.substr(firstComma + 1, secondComma - firstComma - 1));
+      blue = stoi(rgb.substr(secondComma + 1, lastBracket));
+    }
+    // else {  //else IN THIS CASE it is the pin we want to toggle the state of
+    //           //toggleCheckbox in the js file sends the GPIO pin numbers
+    //   int pinNum = atoi((char*)data);
+    //   digitalWrite(pinNum, !digitalRead(pinNum));
+    //   notifyClients(getOutputStates());
+    // }
+  }
+}
+
+/**
+Event listener handles different asyncronous steps from the web socket
+*/
+void onEvent(AsyncWebSocket* server, AsyncWebSocketClient* client, AwsEventType type, void* arg, uint8_t* data, size_t len) {
+  switch (type) {
+    case WS_EVT_CONNECT:
+      //Serial.printf("WebSocket client #%u connected from %s\n", client->id(), client->remoteIP().toString().c_str());
+      Serial.print("WebSocket client ");
+      Serial.print(client->id());
+      Serial.print(" connected from ");
+      Serial.println(client->remoteIP().toString().c_str());
+      break;
+    case WS_EVT_DISCONNECT:
+      //Serial.printf("WebSocket client #%u disconnected\n", client->id());
+      Serial.print("WebSocket client ");
+      Serial.print(client->id());
+      Serial.println(" disconnected\n");
+      break;
+    case WS_EVT_DATA:
+      handleWebSocketMessage(arg, data, len);
+      break;
+    case WS_EVT_PONG:
+    case WS_EVT_ERROR:
+      break;
+  }
+}
+
+
+/**
+WebSocket setup
+What to do when an event happens on the ws socket and adding a handler to the server
+*/
+void initWebSocket() {
+  ws.onEvent(onEvent);
+  server.addHandler(&ws);
+  Serial.println("websocket should be running now");
+}
+
+
+/**
+ Setup serial, pins, wifi, littleFS, websocket, websever, screen, and neopixel
+*/
 void setup() {
   //------------- Serial setup --------------
   Serial.begin(115200);
   while (!Serial) {
     delay(100);
   }
+
+  //------------- Button setup --------------
+  pinMode(BTNPIN, INPUT);
+  pinMode(13, OUTPUT);  //default led not neopixel
 
   //----------- WiFi setup ------------
   WiFi.mode(WIFI_STA);
@@ -126,6 +222,19 @@ void setup() {
   //----------- LittleFS setup ------------
   initLittleFS();
 
+  //----------- webSocket setup ------------
+  initWebSocket();
+
+  //------------- Web Server setup --------------
+  // Web Server Root URL
+  server.on("/", HTTP_GET, [](AsyncWebServerRequest* request) {
+    request->send(LittleFS, "/index.html", "text/html", false);
+  });
+  server.serveStatic("/", LittleFS, "/");
+
+  server.begin();
+  Serial.println("webserver should be running now");
+
   //------------- Screen setup --------------
   pinMode(TFT_BACKLITE, OUTPUT);
   pinMode(TFT_I2C_POWER, OUTPUT);
@@ -139,80 +248,22 @@ void setup() {
   //------------- Neopixel setup --------------
   pixels.begin();
   pixels.show();
-  Serial.println("pixel should be going with 000 as its rgb values");
-
-  //------------- Web Server setup --------------
-  // Load values saved in LittleFS
-  inputR = readFile(LittleFS, inputRPath);
-  inputG = readFile(LittleFS, inputGPath);
-  inputB = readFile(LittleFS, inputBPath);
-  
-  // Web Server Root URL
-  server.on("/", HTTP_GET, [](AsyncWebServerRequest* request) {
-    request->send(LittleFS, "/index.html", "text/html");
-  });
-  server.serveStatic("/", LittleFS, "/");
-
-//when the page first loads sends a GET request to /values url respond with the 
-//current values of inputR, inputG, and inputB something like
-// "inputR": "0",
-// "inputG": "255",
-// "inputB": "255"
-//from the getCurrentInputValues method up areound line 40 or so
-  server.on("/values", HTTP_GET, [](AsyncWebServerRequest* request) {
-    String json = getCurrentInputValues();
-    request->send(200, "application/json", json);
-    json = String();
-  });
-
-  //when you click the submit button search what we were sent in the post request
-  //if it is one of the PARAM_INPUT_X 123 we are looking for below then 
-  //save the value to the inputX RGB variable and to the inputXpath RBG file
-  server.on("/", HTTP_POST, [](AsyncWebServerRequest* request) {
-    int params = request->params();
-    for (int i = 0; i < params; i++) {
-      const AsyncWebParameter* p = request->getParam(i);
-      if (p->isPost()) {
-        // HTTP POST inputR value
-        if (p->name() == PARAM_INPUT_1) {
-          inputR = p->value().c_str();
-          Serial.print("Input 1 set to: ");
-          Serial.println(inputR);
-          // Write file to save value
-          writeFile(LittleFS, inputRPath, inputR.c_str());
-        }
-        // HTTP POST inputG value
-        if (p->name() == PARAM_INPUT_2) {
-          inputG = p->value().c_str();
-          Serial.print("Input 2 set to: ");
-          Serial.println(inputG);
-          // Write file to save value
-          writeFile(LittleFS, inputGPath, inputG.c_str());
-        }
-        // HTTP POST inputB value
-        if (p->name() == PARAM_INPUT_3) {
-          inputB = p->value().c_str();
-          Serial.print("Input 3 set to: ");
-          Serial.println(inputB);
-          // Write file to save value
-          writeFile(LittleFS, inputBPath, inputB.c_str());
-        }
-        //Serial.printf("POST[%s]: %s\n", p->name().c_str(), p->value().c_str());
-      }
-    }
-    request->send(LittleFS, "/index.html", "text/html");
-  });
-  server.begin();
+  Serial.println("pixel should be going with 000 as its rgb values");  //but when is it updated? and where
 }
 
+/**
+Loop cleaning clients, and displaying/setting the neopixel color
+*/
 void loop() {
+  //frees up memory by refreshing the list of clients connected
+  ws.cleanupClients();
+  //delay(1000); //will effect any button click i think
 
-  //Get the RGB values for neopixel
-  //purely to make it easier to read in this section
-  //they could all just use inputR rather than red etc
-  red = inputR.toInt();
-  green = inputG.toInt();
-  blue = inputB.toInt();
+  //seems to spam the webpage with the states so like the serial monitor
+  //give it a delay to slow this traffic down?
+  //picks up button click real quick though :)
+  //notifyClients(getOutputStates());
+
 
   //------------- Display RGB values --------------
   //Give feedback in serial monitor about RGB values
@@ -243,7 +294,4 @@ void loop() {
   //Set the neopixel to the chosen colour
   pixels.setPixelColor(0, pixels.Color(red, green, blue));
   pixels.show();
-
-  //Just for spamming the button reasons
-  delay(2000);
 }
