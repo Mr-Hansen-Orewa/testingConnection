@@ -10,9 +10,9 @@
 #include <SPI.h>
 #include <Adafruit_NeoPixel.h>
 
-//------------- D1 button setup --------------
+//------------- D2 button setup --------------
 const byte BTNPIN = 2;  //D2 is also GPIO2 //Oh not zero //D0 should be avoided
-
+const byte LEDPIN = 13;
 
 //------------- Screen setup --------------
 Adafruit_ST7789 tftScreen = Adafruit_ST7789(TFT_CS, TFT_DC, TFT_RST);
@@ -92,8 +92,7 @@ void writeFile(fs::FS& fs, const char* path, const char* message) {
 
 /**
 set up a JSON array and hold the states of all values we care about
-pins and their current states
-variables and their current values
+pins and their current states variables and their current values
 */
 String getOutputStates() {
   JSONVar myArray;
@@ -130,8 +129,7 @@ void handleWebSocketMessage(void* arg, uint8_t* data, size_t len) {
     if (strcmp((char*)data, "getStates") == 0) {
       notifyClients(getOutputStates());
     } else {
-//THIS THIS STUFF HERE FIGURE ALL OF THIS OUT AHAHAHAHAHAHHAHAHAHAHHAHAHAHAHAH
-      // std::string rgb = "rgb(255,87,51)";
+      //(char*)data should be in this format "rgb(255,87,51)" when it isn't 'getStates'
       std::string rgb = (char*)data;
       byte firstComma = rgb.find(',');
       byte secondComma = rgb.find(',', firstComma + 1);
@@ -141,12 +139,8 @@ void handleWebSocketMessage(void* arg, uint8_t* data, size_t len) {
       green = stoi(rgb.substr(firstComma + 1, secondComma - firstComma - 1));
       blue = stoi(rgb.substr(secondComma + 1, lastBracket));
     }
-    // else {  //else IN THIS CASE it is the pin we want to toggle the state of
-    //           //toggleCheckbox in the js file sends the GPIO pin numbers
-    //   int pinNum = atoi((char*)data);
-    //   digitalWrite(pinNum, !digitalRead(pinNum));
-    //   notifyClients(getOutputStates());
-    // }
+    //Just to alternate the led on and off to show we can digitalRead and digitalWrite here
+    digitalWrite(LEDPIN, !digitalRead(LEDPIN));
   }
 }
 
@@ -199,9 +193,9 @@ void setup() {
     delay(100);
   }
 
-  //------------- Button setup --------------
+  //------------- Button and LED setup --------------
   pinMode(BTNPIN, INPUT);
-  pinMode(13, OUTPUT);  //default led not neopixel
+  pinMode(LEDPIN, OUTPUT);  //default led not neopixel
 
   //----------- WiFi setup ------------
   WiFi.mode(WIFI_STA);
@@ -262,7 +256,7 @@ void loop() {
   //seems to spam the webpage with the states so like the serial monitor
   //give it a delay to slow this traffic down?
   //picks up button click real quick though :)
-  //notifyClients(getOutputStates());
+  notifyClients(getOutputStates()); //AM I AN ISSUE NEED TO TEST--------------------------------------
 
 
   //------------- Display RGB values --------------
@@ -278,7 +272,7 @@ void loop() {
   //printf("RGB value is %i, %i, %i", red, green, blue);
 
   //Give feedback on tft screen about RGB values
-  tftScreen.fillScreen(ST77XX_WHITE); //stops text going over itself on next loop
+  tftScreen.fillScreen(ST77XX_WHITE);  //stops text going over itself on next loop
   tftScreen.setCursor(0, 0);
   tftScreen.setTextColor(ST77XX_BLACK);
   tftScreen.setTextSize(2);
