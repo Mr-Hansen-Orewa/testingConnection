@@ -278,6 +278,7 @@ void loop() {
   //printf("RGB value is %i, %i, %i", red, green, blue);
 
   //Give feedback on tft screen about RGB values
+  tftScreen.fillScreen(ST77XX_WHITE); //stops text going over itself on next loop
   tftScreen.setCursor(0, 0);
   tftScreen.setTextColor(ST77XX_BLACK);
   tftScreen.setTextSize(2);
