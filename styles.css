@@ -5,6 +5,7 @@ text-align: center;
 }
 
 /*-------- Flexbox CSS --------*/
+/*Window resizing is important for the assessment feel free to look up what you can adjust in the flexbox css system */
 * {
   box-sizing: border-box;
 }
@@ -28,28 +29,4 @@ text-align: center;
   .flex-item {
     flex: 100%;
   }
-}
-
-/*-------- Buttons --------*/
-button{
-border: solid 1px black;
-color: #FEFCFB;
-background-color: #257803;
-padding: 15px 15px;
-text-align: center;
-text-decoration: none;
-display: inline-block;
-font-size: 16px;
-width: 200px;
-margin: 5px;
-border-radius: 4px;
-transition-duration: 0.4s;
-}
-
-button:hover {
-background-color: #36b602;
-}
-
-button:disabled{
-background-color: lightgrey;
 }
