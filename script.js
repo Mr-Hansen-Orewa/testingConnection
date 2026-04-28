@@ -56,9 +56,9 @@ function onMessage(event) {
 
     //if d2 button is being pressed change the text on the HTML page
     if (btnPressed == "1") {
-        document.getElementById("d2Button").innerHTML = "aren't";
-    } else {
         document.getElementById("d2Button").innerHTML = "are";
+    } else {
+        document.getElementById("d2Button").innerHTML = "aren't";
     }
 
     //neopixel RGB values pasted over the previous HTML ones
