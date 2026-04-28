@@ -1,6 +1,6 @@
-Formatting the ESP32 with the partition  
+Formatting the ESP32 with the partition file  
 Then using the https://thelastoutpostworkshop.github.io/ESPConnect/ site to upload the website files to the LittleFS partition  
-The testingConnection.ino file and secrets.h file should let the website control the neopixel color while also testing a range of connection issues  
+The testingConnection.ino file and secrets.h file should let the website control the neopixel color and read the D2 button presses, while also testing a range of connection issues.  
   
 1. Upload works
 2. Screen works
@@ -10,5 +10,5 @@ The testingConnection.ino file and secrets.h file should let the website control
 - Html works
 - Css works
 - Javascript works
-6. Webserver control from webpage to ESP (neopixel) works
-7. Webserver control from ESP to webpage (button state) works
+6. Control from webpage to ESP (neopixel) works
+7. Reading from ESP to webpage (button state) works
