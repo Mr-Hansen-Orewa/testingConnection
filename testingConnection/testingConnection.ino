@@ -140,7 +140,7 @@ void handleWebSocketMessage(void* arg, uint8_t* data, size_t len) {
       blue = stoi(rgb.substr(secondComma + 1, lastBracket));
     }
     //Just to alternate the led on and off to show we can digitalRead and digitalWrite here
-    digitalWrite(LEDPIN, !digitalRead(LEDPIN));
+    //digitalWrite(LEDPIN, !digitalRead(LEDPIN)); //AM I AN ISSUE NEED TO TEST--------------------------------------
   }
 }
 
@@ -242,7 +242,6 @@ void setup() {
   //------------- Neopixel setup --------------
   pixels.begin();
   pixels.show();
-  Serial.println("pixel should be going with 000 as its rgb values");  //but when is it updated? and where
 }
 
 /**
@@ -251,7 +250,7 @@ Loop cleaning clients, and displaying/setting the neopixel color
 void loop() {
   //frees up memory by refreshing the list of clients connected
   ws.cleanupClients();
-  //delay(1000); //will effect any button click i think
+  delay(1000); //slows things down for button clicks but stops flickering screen
 
   //seems to spam the webpage with the states so like the serial monitor
   //give it a delay to slow this traffic down?
